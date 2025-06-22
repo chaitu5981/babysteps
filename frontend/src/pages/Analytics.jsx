@@ -8,23 +8,36 @@ const Analytics = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/analytics/popular-milestones").then(res => setMilestones(res.data));
-    axios.get("http://localhost:5000/api/analytics/top-tips").then(res => setTips(res.data));
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/analytics/popular-milestones`)
+      .then((res) => setMilestones(res.data));
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/analytics/top-tips`)
+      .then((res) => setTips(res.data));
   }, []);
 
   return (
     <div className="p-4">
-      <button onClick={() => navigate("/milestones")} className="mb-4 text-blue-600 underline">← Back to Milestones</button>
+      <button
+        onClick={() => navigate("/milestones")}
+        className="mb-4 text-blue-600 underline"
+      >
+        ← Back to Milestones
+      </button>
       <h2 className="text-xl font-bold mb-2">Most Common Milestones</h2>
       <ul className="mb-4">
         {milestones.map((m, i) => (
-          <li key={i}>{m._id} — {m.count}</li>
+          <li key={i}>
+            {m._id} — {m.count}
+          </li>
         ))}
       </ul>
       <h2 className="text-xl font-bold mb-2">Most Liked Tips</h2>
       <ul>
         {tips.map((t, i) => (
-          <li key={i}>{t.content} ({t.likes} likes)</li>
+          <li key={i}>
+            {t.content} ({t.likes} likes)
+          </li>
         ))}
       </ul>
     </div>

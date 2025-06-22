@@ -4,14 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { io } from "socket.io-client";
 import Loader from "../Loader";
 import { weekMessages } from "../data";
-const socket = io("http://localhost:5000");
+const socket = io(import.meta.env.VITE_API_URL);
 
 const Milestones = () => {
   const handleLikeTip = async (tipId, milestoneId) => {
     try {
       setLikeLoading(true);
       await axios.put(
-        `http://localhost:5000/api/tips/${tipId}/like`,
+        `${import.meta.env.VITE_API_URL}/api/tips/${tipId}/like`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -38,14 +38,15 @@ const Milestones = () => {
   const [notes, setNotes] = useState("");
   const [tips, setTips] = useState({});
   const [newTip, setNewTip] = useState("");
-  const [viewingTips, setViewingTips] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [likingTipId, setLikingTipId] = useState(null);
   const [editData, setEditData] = useState({});
+  const [tipAddingId, setTipAddingId] = useState(null);
   const navigate = useNavigate();
 
   const token = localStorage.getItem("token");
+  const name = localStorage.getItem("name");
   const pregnancyStartDate = localStorage.getItem("pregnancyStartDate");
   const pregnancyWeek = pregnancyStartDate
     ? Math.ceil(
@@ -56,7 +57,7 @@ const Milestones = () => {
     if (!token) navigate("/");
     setMilestonesLoading(true);
     axios
-      .get("http://localhost:5000/api/milestones", {
+      .get(`${import.meta.env.VITE_API_URL}/api/milestones`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
@@ -68,18 +69,22 @@ const Milestones = () => {
         setMilestonesLoading(false);
       });
   }, [token, navigate]);
-
+  console.log(tips);
   useEffect(() => {
-    if (viewingTips) {
-      socket.on(`new-tip-${viewingTips}`, (tip) => {
-        setTips((prev) => ({
-          ...prev,
-          [viewingTips]: [...(prev[viewingTips] || []), tip],
-        }));
+    milestones
+      .map((m) => m._id)
+      .forEach((mId) => {
+        fetchTips(mId);
+        socket.on(`new-tip-${mId}`, (tip) => {
+          setTips((prev) => ({
+            ...prev,
+            [mId]: [...(prev[mId] || []), tip],
+          }));
+        });
       });
-    }
+
     return () => socket.off();
-  }, [viewingTips]);
+  }, [milestones]);
 
   const addMilestone = async () => {
     if (!title || !date) {
@@ -90,7 +95,7 @@ const Milestones = () => {
     try {
       setAddMilestoneLoading(true);
       await axios.post(
-        "http://localhost:5000/api/milestones",
+        `${import.meta.env.VITE_API_URL}/api/milestones`,
         {
           title,
           date,
@@ -112,9 +117,12 @@ const Milestones = () => {
     if (confirm("Are you sure you want to delete this milestone?")) {
       try {
         setDeleteLoading(true);
-        await axios.delete(`http://localhost:5000/api/milestones/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axios.delete(
+          `${import.meta.env.VITE_API_URL}/api/milestones/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
         setMilestones(milestones.filter((m) => m._id !== id));
       } catch (error) {
         alert(error.response.data.message);
@@ -136,9 +144,13 @@ const Milestones = () => {
   const saveEdit = async (id) => {
     try {
       setSaveEditLoading(true);
-      await axios.put(`http://localhost:5000/api/milestones/${id}`, editData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `${import.meta.env.VITE_API_URL}/api/milestones/${id}`,
+        editData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const updated = milestones.map((m) =>
         m._id === id ? { ...m, ...editData } : m
       );
@@ -153,16 +165,15 @@ const Milestones = () => {
 
   const fetchTips = async (id) => {
     const res = await axios.get(
-      `http://localhost:5000/api/milestones/${id}/tips`,
+      `${import.meta.env.VITE_API_URL}/api/milestones/${id}/tips`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
     );
     setTips((prev) => ({ ...prev, [id]: res.data }));
-    setViewingTips(id);
   };
 
-  const submitTip = async () => {
+  const submitTip = async (mId) => {
     if (newTip.length < 5) {
       alert("Tip has to be at least 5 characters");
       return;
@@ -170,7 +181,7 @@ const Milestones = () => {
     try {
       setSubmitTipLoading(true);
       await axios.post(
-        `http://localhost:5000/api/milestones/${viewingTips}/tips`,
+        `${import.meta.env.VITE_API_URL}/api/milestones/${mId}/tips`,
         {
           content: newTip,
           author: "User",
@@ -180,6 +191,7 @@ const Milestones = () => {
         }
       );
       setNewTip("");
+      setTipAddingId(null);
     } catch (error) {
       alert(error.response.data.message);
     } finally {
@@ -194,17 +206,23 @@ const Milestones = () => {
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-xl font-semibold">
-        Welcome! Pregnancy Week: {pregnancyWeek}
-      </h2>
+      <div className="flex justify-between">
+        <h2 className="text-xl font-semibold">
+          Welcome! Pregnancy Week: {pregnancyWeek}
+        </h2>
+        <div className="flex gap-6 items-center">
+          {name}
+          <button onClick={logout} className="text-lg text-red-500">
+            Logout
+          </button>
+        </div>
+      </div>
       {weekMessages[pregnancyWeek] && (
         <div className="p-2 mt-2 bg-yellow-100 border border-yellow-300 rounded">
           <p>{weekMessages[pregnancyWeek]}</p>
         </div>
       )}
-      <button onClick={logout} className="text-sm text-red-500">
-        Logout
-      </button>
+
       <h3 className="font-semibold">Add Milestone</h3>
       <input
         placeholder="Title"
@@ -280,16 +298,16 @@ const Milestones = () => {
                 <>
                   <p>
                     <strong>{m.title}</strong> (
-                    {new Date(m.date).toLocaleDateString()})
+                    {new Date(m.date).toLocaleDateString()}){"  "}
+                    <span className="text-sm">
+                      created by{"   "}
+                      <span className="font-semibold text-md">
+                        {m.userId.name}
+                      </span>
+                    </span>
                   </p>
                   <p>{m.notes}</p>
                   <div className="space-x-4 text-sm">
-                    <button
-                      onClick={() => fetchTips(m._id)}
-                      className="text-blue-500"
-                    >
-                      View Tips
-                    </button>
                     <button
                       onClick={() => startEditing(m)}
                       className="text-orange-500"
@@ -312,8 +330,10 @@ const Milestones = () => {
                   </div>
                 </>
               )}
-              {viewingTips === m._id && (
+
+              {tips[m._id]?.length > 0 && (
                 <div className="mt-2">
+                  <p>Tips</p>
                   {tips[m._id]?.map((t) => (
                     <div
                       key={t._id}
@@ -338,6 +358,16 @@ const Milestones = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+              <button
+                onClick={() => setTipAddingId(m._id)}
+                className="bg-blue-400 text-white px-2 py-1 text-sm"
+              >
+                Add Tip
+              </button>
+              {tipAddingId == m._id && (
+                <div>
                   <input
                     value={newTip}
                     onChange={(e) => setNewTip(e.target.value)}
@@ -346,11 +376,17 @@ const Milestones = () => {
                   />
                   <button
                     onClick={() => {
-                      submitTip();
+                      submitTip(m._id);
                     }}
                     className="bg-green-600 text-white px-2 py-1 ml-2"
                   >
                     {submitTipLoading ? <Loader color="white" /> : "Submit Tip"}
+                  </button>
+                  <button
+                    className="border-red-500 px-2 py-1 border-2 ml-2 text-red-500"
+                    onClick={() => setTipAddingId(null)}
+                  >
+                    Cancel
                   </button>
                 </div>
               )}

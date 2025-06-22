@@ -5,6 +5,7 @@ import Loader from "../Loader";
 
 const Register = () => {
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [pregnancyStartDate, setPregnancyStartDate] = useState(null);
   const navigate = useNavigate();
@@ -12,8 +13,9 @@ const Register = () => {
   const handleRegister = async () => {
     try {
       setLoading(true);
-      await axios.post("http://localhost:5000/api/auth/register", {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, {
         email,
+        name,
         password,
         pregnancyStartDate,
       });
@@ -33,6 +35,12 @@ const Register = () => {
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+      />
+      <input
+        className="border p-2 mb-2 w-full"
+        placeholder="Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
       />
       <input
         className="border p-2 mb-2 w-full"

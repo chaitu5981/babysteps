@@ -16,7 +16,9 @@ const routerFactory = (io) => {
   });
 
   router.get("/", async (req, res) => {
-    const milestones = await Milestone.find().sort({ date: -1 });
+    const milestones = await Milestone.find()
+      .populate("userId", "name")
+      .sort({ date: -1 });
     res.json(milestones);
   });
 
