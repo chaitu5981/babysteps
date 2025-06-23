@@ -49,6 +49,7 @@ const Register = () => {
         value={password}
         onChange={(e) => setPassword(e.target.value)}
       />
+      <p>Pregnancy Start Date:</p>
       <input
         className="border p-2 mb-2 w-full"
         type="date"
